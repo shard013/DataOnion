@@ -21,9 +21,6 @@ namespace DataOnion.Layers
                 outStream.Write(packet.Payload);
             }
 
-            // *** Note from author ***
-            // Fairly sure this output is correct but not quite 100% sure
-            // Will find out when working on the Layer 5 solution
             return outStream.ToArray();
         }
 
