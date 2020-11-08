@@ -16,7 +16,8 @@ namespace DataOnion
         const string Layer3Data = "Layer-3.txt";
         const string Layer4Data = "Layer-4.txt";
         const string Layer5Data = "Layer-5.txt";
-        const string Layer6Data = "TheCore.txt";
+        const string Layer6Data = "Layer-6.txt";
+        const string Layer7Data = "TheCore.txt";
 
         static void Main()
         {
@@ -26,6 +27,7 @@ namespace DataOnion
             DecodeLayer3();
             DecodeLayer4();
             DecodeLayer5();
+            DecodeLayer6();
         }
 
         static void DecodeLayer0()
@@ -79,6 +81,15 @@ namespace DataOnion
             decoded = Layer5.Decrypt(decoded);
             var output = Encoding.ASCII.GetString(decoded, 0, decoded.Length);
             File.WriteAllText($"{DataDirectory}{Layer6Data}", output);
+        }
+
+        static void DecodeLayer6()
+        {
+            var payload = GetPayload(Layer5Data);
+            var decoded = Ascii85.Decode(payload);
+            decoded = Layer6.Decrypt(decoded);
+            var output = Encoding.ASCII.GetString(decoded, 0, decoded.Length);
+            File.WriteAllText($"{DataDirectory}{Layer7Data}", output);
         }
 
         static string GetPayload(string filename)

@@ -9,6 +9,8 @@
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -18,7 +20,7 @@ namespace DataOnion.Layers
 {
     public static class Layer5
     {
-        static readonly int[] DataSequence = new int[] { 256, 8, 40, 128, 5 };
+        static readonly int[] DataSequence = new int[] { 256, 8, 40, 128, 0 };
 
         public static byte[] Decrypt(byte[] bytes)
         {
@@ -57,14 +59,11 @@ namespace DataOnion.Layers
 
             try
             {
-                using Aes aesAlg = Aes.Create();
-                aesAlg.Key = key;
-                aesAlg.IV = iv;
-                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
                 using MemoryStream msDecrypt = new MemoryStream(cipherText);
-                using CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
-                output = new byte[msDecrypt.Length];
-                csDecrypt.Read(output, 0, output.Length);
+                var outStream = AesCtrTransform(key, iv, msDecrypt);
+                output = new byte[outStream.Length];
+                outStream.Position = 0;
+                outStream.Read(output);
             }
             catch (CryptographicException e)
             {
@@ -79,6 +78,61 @@ namespace DataOnion.Layers
             var data = new byte[length];
             stream.Read(data, 0, data.Length);
             return data;
+        }
+
+        public static Stream AesCtrTransform(byte[] key, byte[] salt, Stream inputStream)
+        {
+            var outputStream = new MemoryStream();
+            SymmetricAlgorithm aes =
+                new AesManaged { Mode = CipherMode.ECB, Padding = PaddingMode.PKCS7 };
+
+            int blockSize = aes.BlockSize / 8;
+
+            if (salt.Length != blockSize)
+            {
+                throw new ArgumentException(
+                    string.Format(
+                        "Salt size must be same as block size (actual: {0}, expected: {1})",
+                        salt.Length, blockSize));
+            }
+
+            byte[] counter = (byte[])salt.Clone();
+
+            Queue<byte> xorMask = new Queue<byte>();
+
+            var zeroIv = new byte[blockSize];
+            ICryptoTransform counterEncryptor = aes.CreateEncryptor(key, zeroIv);
+
+            int b;
+            while ((b = inputStream.ReadByte()) != -1)
+            {
+                if (xorMask.Count == 0)
+                {
+                    var counterModeBlock = new byte[blockSize];
+
+                    counterEncryptor.TransformBlock(
+                        counter, 0, counter.Length, counterModeBlock, 0);
+
+                    for (var i2 = counter.Length - 1; i2 >= 0; i2--)
+                    {
+                        if (++counter[i2] != 0)
+                        {
+                            break;
+                        }
+                    }
+
+                    foreach (var b2 in counterModeBlock)
+                    {
+                        xorMask.Enqueue(b2);
+                    }
+                }
+
+                var mask = xorMask.Dequeue();
+                var bMask = (byte)(((byte)b) ^ mask);
+                outputStream.WriteByte(bMask);
+            }
+
+            return outputStream;
         }
 
     }
