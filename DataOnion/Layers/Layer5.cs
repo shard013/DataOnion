@@ -2,7 +2,7 @@
  *      *** Note from author ***
  * 
  *      Layer 5 has been intentionally crippled, it can be fixed with a minor alteration to a single line.
- *      This is your final warning to turn back.
+ *      This is nearly your final warning to turn back.
  * 
  */
 

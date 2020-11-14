@@ -85,10 +85,23 @@ namespace DataOnion
 
         static void DecodeLayer6()
         {
-            var payload = GetPayload(Layer5Data);
-            var decoded = Ascii85.Decode(payload);
-            decoded = Layer6.Decrypt(decoded);
-            var output = Encoding.ASCII.GetString(decoded, 0, decoded.Length);
+            byte[] decoded;
+            var runSampleProgram = false;
+            if (runSampleProgram)
+            {
+                var lines = File.ReadLines($"{DataDirectory}{Layer6Data}");
+                decoded = Layer6.GetSampleProgramTestBytes(lines);
+            }
+            else
+            {
+                var payload = GetPayload(Layer6Data);
+                decoded = Ascii85.Decode(payload);
+            }
+
+            File.WriteAllText($"{DataDirectory}{Layer7Data}", $"Begin decoding {nameof(Layer6Data)} at {System.DateTime.Now}");
+
+            var decrypted = Layer6.Decrypt(decoded);
+            var output = Encoding.ASCII.GetString(decrypted, 0, decrypted.Length);
             File.WriteAllText($"{DataDirectory}{Layer7Data}", output);
         }
 
